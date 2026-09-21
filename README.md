@@ -1,4 +1,4 @@
-# Audio description quality: a systematic scoping review
+# Audio description quality: Systematic scoping review
 
 Supplementary materials for:
 
