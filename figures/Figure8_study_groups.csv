@@ -1,0 +1,76 @@
+study_id,EvalGroup,sample_n,[BIB] Author(s),[BIB] Publication Year,[BIB] Discipline,[MET] Study Type,[PAR] Evaluator 1,[PAR] Evaluator 2
+29,Blind & partially sighted,107,"Jiang, L.; Zhu, D.",2021,Computer Science,Empirical,Blind and partially sighted,
+15,Blind & partially sighted,83,"Ferziger, N.; Dror, Y. F.; Gruber, L.; Goren, N.; Neustadt-Noy, N.; Katz, N.; Erez, A. B-H.",2020,Disability Studies,Empirical,Blind and partially sighted,
+21,Blind & partially sighted,76,"García-Prieto, V.; Aguaded, I.",2021,Communication Studies,Empirical,Blind and partially sighted,
+4,Blind & partially sighted,69,"Branje, C.J.; Fels, D.I.",2012,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+51,Blind & partially sighted,60,"Peaty, G.; Locke, K.; Kao, K-T.; Ellis, K.; Hersinta",2023,Communication Studies,Empirical,Blind and partially sighted,
+19,Blind & partially sighted,54,"Fryer, L.",2021,Translation Studies,Empirical,Blind and partially sighted,
+34,Blind & partially sighted,40,"Li, C.; Padmanabhuni, S.; Cheema, M. S.; Seifi, H.; Fazli, P.",2025,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+62,Blind & partially sighted,40,"Tor-Carroggio, I.",2020,Translation Studies,Empirical,Blind and partially sighted,
+22,Blind & partially sighted,39,"Gerber, E.",2009,Anthropology,Empirical,Blind and partially sighted,
+54,Blind & partially sighted,36,"Rodríguez González de Antona, A.",2017,Translation Studies,Empirical,Blind and partially sighted,Sighted (non-professional)
+71,Blind & partially sighted,26,"Yang, H.; Shen, W.; Liu, B.; Wang, Y.",2023,Translation Studies,Empirical,Blind and partially sighted,
+41,Blind & partially sighted,24,"Naraine, M. D.; Fels, D. I.; Whitfield, M.",2018,Disability Studies,Empirical,Blind and partially sighted,
+9,Blind & partially sighted,18,"Chmiel, A.; Mazur, I.",2011,Translation Studies,Empirical,Blind and partially sighted,
+58,Blind & partially sighted,17,"Seeley, K. H.",2023,Communication Studies,Empirical,Blind and partially sighted,
+32,Blind & partially sighted,16,"Kapur, R.; Kreiss, E.",2024,Computer Science,Empirical,Blind and partially sighted,
+26,Blind & partially sighted,15,"Iglesias-Fernández, E.; Martínez, S.M.; Núñez, A.J.C.",2015,Translation Studies,Empirical,Blind and partially sighted,
+35,Blind & partially sighted,15,"Luque Colmenero, M.O.; Soler Gallego, S.",2023,Translation Studies,Empirical,Blind and partially sighted,
+64,Blind & partially sighted,15,"Walczak, A.",2018,Translation Studies,Empirical,Blind and partially sighted,
+65,Blind & partially sighted,12,"Wang, Y.; Liang, W.; Huang, H.; Zhang, Y.; Li, D.; Yu, L-F.",2021,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+73,Blind & partially sighted,12,"Yuksel, B. F.; Fazli, P.; Mathur, U.; Bisht, V.; Kim, S. J.; Lee, J. J.; Jin, S. J.; Siu, Y-T.; Miele, J. A.; Yoon, I.",2020,Computer Science,Empirical,Blind and partially sighted,
+74,Blind & partially sighted,12,"Yuksel, B. F.; Kim, S. J.; Jin, S. J.; Fazli, P.; Mathur, U.; Bisht, V.; Yoon, I.; Siu, Y-T.; Lee, J. J.; Miele, J. A.",2020,Computer Science,Empirical,Blind and partially sighted,
+8,Blind & partially sighted,10,"Chica Núñez, A. J.; Jiménez-Hurtado, C.",2020,Translation Studies,Empirical,Blind and partially sighted,
+53,Blind & partially sighted,5,"Rica Peremingo, J.P.",2019,Translation Studies,Empirical,Blind and partially sighted,
+11,Blind & partially sighted,4,"Conde Ruano, J. T.",2021,Translation Studies,Empirical,Blind and partially sighted,
+39,Blind & partially sighted,3,"Nakajima, S.; Mitobe, K.",2022,Computer Science,Empirical,Producer,Blind and partially sighted
+70,Blind & partially sighted,3,"Yan, J. X.; Luo, K.",2024,Translation Studies,Empirical,Blind and partially sighted,Sighted (non-professional)
+44,Blind & partially sighted,2,"Natalie, R.; Loh, J.; Tan, H. S.; Tseng, J.; Chan, I. L. Y-R.; Jarjue, E.; Kacorri, H.; Hara, K.",2021,Computer Science,Empirical,,
+43,Blind & partially sighted,1,"Natalie, R.; Jarjue, E.; Kacorri, H.; Hara, K.",2020,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+45,Blind & partially sighted,1,"Natalie, R.; Loh, J.; Tan, H. S.; Tseng, J.; Kacorri, H.; Hara, K.",2021,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+46,Blind & partially sighted,1,"Natalie, R.; Tseng, J.; Kacorri, H.; Hara, K.",2023,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+67,Blind & partially sighted,1,"Yan, J. X.; Luo, K.",2022,Translation Studies,Theoretical,Researcher,Blind and partially sighted
+13,Machine,,"Do, L.; Jung, G.; Barajas, J. F.; Scott, A. T.; Blum, A. M.; Ihorn, S.; Athitsos, V.; Yoon, I.",2026,Computer Science,Empirical,Sighted (professional),Machine (model-based)
+16,Machine,,"Fischer, L.; Gao, Y.; Lintner, A.; Ebling, S.",2024,Computer Science,Empirical,Machine (reference-based),Sighted (professional)
+24,Machine,,"Han, T.; Bain, M.; Nagrani, A.; Varol, G.; Xie, W.; Zisserman, A.",2024,Computer Science,Empirical,Machine (model-based),
+31,Machine,,"Kala, D.; Khandelwal, E.; Tapaswi, M.",2025,Computer Science,Empirical,Machine (model-based),Sighted (non-professional)
+32,Machine,,"Kapur, R.; Kreiss, E.",2024,Computer Science,Empirical,Blind and partially sighted,
+34,Machine,,"Li, C.; Padmanabhuni, S.; Cheema, M. S.; Seifi, H.; Fazli, P.",2025,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+50,Machine,,"Park, J.; Ye, J.; Lee, S.; Ka, H. W.; Han, D.",2025,Computer Science,Empirical,Machine,Sighted (non-professional)
+66,Machine,,"Xie, J.; Han, T.; Bain, M.; Nagrani, A.; Khandelwal, E.; Varol, G.; Xie, W.; Zisserman, A.",2025,Computer Science,Empirical,Machine (model-based),Sighted (non-professional)
+75,Machine,,"Zhang, C.; Lin, K.; Yang, Z.; Wang, J.; Li, L.; Lin, C-C.; Liu, Z.; Wang, L.",2024,Computer Science,Empirical,Machine (model-based),
+50,Sighted,600,"Park, J.; Ye, J.; Lee, S.; Ka, H. W.; Han, D.",2025,Computer Science,Empirical,Machine,Sighted (non-professional)
+21,Sighted,366,"García-Prieto, V.; Aguaded, I.",2021,Communication Studies,Empirical,Blind and partially sighted,
+34,Sighted,354,"Li, C.; Padmanabhuni, S.; Cheema, M. S.; Seifi, H.; Fazli, P.",2025,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+51,Sighted,207,"Peaty, G.; Locke, K.; Kao, K-T.; Ellis, K.; Hersinta",2023,Communication Studies,Empirical,Blind and partially sighted,
+32,Sighted,59,"Kapur, R.; Kreiss, E.",2024,Computer Science,Empirical,Blind and partially sighted,
+69,Sighted,42,"Yan, J. X.; Luo, K.",2023,Translation Studies,Empirical,Sighted (non-professional),
+68,Sighted,36,"Yan, J. X.; Luo, K.",2023,Translation Studies,Empirical,Sighted (non-professional),
+13,Sighted,28,"Do, L.; Jung, G.; Barajas, J. F.; Scott, A. T.; Blum, A. M.; Ihorn, S.; Athitsos, V.; Yoon, I.",2026,Computer Science,Empirical,Sighted (professional),Machine (model-based)
+54,Sighted,22,"Rodríguez González de Antona, A.",2017,Translation Studies,Empirical,Blind and partially sighted,Sighted (non-professional)
+1,Sighted,20,"Arcos Urrutia, J. M.",2012,Communication Studies,Empirical,Sighted (professional),Sighted (non-professional)
+25,Sighted,20,"Hermosa-Ramírez, I.",2022,Translation Studies,Empirical,Sighted (professional),
+65,Sighted,20,"Wang, Y.; Liang, W.; Huang, H.; Zhang, Y.; Li, D.; Yu, L-F.",2021,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+29,Sighted,12,"Jiang, L.; Zhu, D.",2021,Computer Science,Empirical,Blind and partially sighted,
+58,Sighted,11,"Seeley, K. H.",2023,Communication Studies,Empirical,Blind and partially sighted,
+70,Sighted,11,"Yan, J. X.; Luo, K.",2024,Translation Studies,Empirical,Blind and partially sighted,Sighted (non-professional)
+57,Sighted,10,"Scholz, A. C.",2021,Computer Science,Empirical,Autistic,Dyslexic
+31,Sighted,8,"Kala, D.; Khandelwal, E.; Tapaswi, M.",2025,Computer Science,Empirical,Machine (model-based),Sighted (non-professional)
+4,Sighted,6,"Branje, C.J.; Fels, D.I.",2012,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+35,Sighted,5,"Luque Colmenero, M.O.; Soler Gallego, S.",2023,Translation Studies,Empirical,Blind and partially sighted,
+66,Sighted,5,"Xie, J.; Han, T.; Bain, M.; Nagrani, A.; Khandelwal, E.; Varol, G.; Xie, W.; Zisserman, A.",2025,Computer Science,Empirical,Machine (model-based),Sighted (non-professional)
+16,Sighted,3,"Fischer, L.; Gao, Y.; Lintner, A.; Ebling, S.",2024,Computer Science,Empirical,Machine (reference-based),Sighted (professional)
+33,Sighted,3,"Khoshsaligheh, M.; Shokoohmand, F.; Delnavaz, F.",2022,Translation Studies,Empirical,Researcher,
+39,Sighted,3,"Nakajima, S.; Mitobe, K.",2022,Computer Science,Empirical,Producer,Blind and partially sighted
+44,Sighted,3,"Natalie, R.; Loh, J.; Tan, H. S.; Tseng, J.; Chan, I. L. Y-R.; Jarjue, E.; Kacorri, H.; Hara, K.",2021,Computer Science,Empirical,,
+5,Sighted,2,"Braun, S.; Starr, K.",2019,Translation Studies,Empirical,Researcher,
+30,Sighted,2,"Kajzer-Wietrzny, M.; Tymczyńska, M.",2015,Translation Studies,Theoretical,Researcher,
+67,Sighted,2,"Yan, J. X.; Luo, K.",2022,Translation Studies,Theoretical,Researcher,Blind and partially sighted
+6,Sighted,1,"Cabeza-Cáceres, C.",2017,Translation Studies,Theoretical,Researcher,
+28,Sighted,1,"Jankowska, A.",2019,Translation Studies,Theoretical,Researcher,
+40,Sighted,1,"Nakajima, S.; Mitobe, K.",2024,Computer Science,Empirical,Producer,
+43,Sighted,1,"Natalie, R.; Jarjue, E.; Kacorri, H.; Hara, K.",2020,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+45,Sighted,1,"Natalie, R.; Loh, J.; Tan, H. S.; Tseng, J.; Kacorri, H.; Hara, K.",2021,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+46,Sighted,1,"Natalie, R.; Tseng, J.; Kacorri, H.; Hara, K.",2023,Computer Science,Empirical,Blind and partially sighted,Sighted (non-professional)
+36,Sighted,,"Marzà Ibáñez, A.",2010,Translation Studies,Theoretical,Researcher,
+61,Sighted,,"Snyder, J.",2007,Translation Studies,Theoretical,Sighted (professional),

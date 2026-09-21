@@ -1,0 +1,1432 @@
+---
+title: "Audio description quality: Systematic scoping review"
+subtitle: "Figure code"
+author: "Dallı, H.; Jankowska, A.; Schrijver, I.; González Fernández, C. A.; Reviers, N.; Vercauteren, G."
+date: "Compiled `r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    theme: readable
+    highlight: tango
+    code_folding: show
+---
+
+```{r knitr-setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  message    = FALSE,
+  warning    = FALSE,
+  dpi        = 120,
+  fig.align  = "center",
+  out.width  = "100%"
+)
+```
+
+# About this document
+
+This document reproduces every figure in *Audio description quality: Systematic scoping review* that is drawn from data rather than from a drawing
+program. Knitting it end to end regenerates the published figures as both PDF
+and PNG in a `figures/` sub-folder, using only the two data appendices that
+accompany it.
+
+**What is here.** Figures 2, 3, 5, 6, 7 and 8.
+
+**What is not.** Figure 1 (the PRISMA 2020 flowchart) and Figure 4 (the
+pinwheel of the four dimensions) are diagrams rather than plots of charted
+data; they were drawn directly and have no code to report.
+
+**Inputs.** Both files must sit in the same folder as this document:
+
+| File | Contents |
+|---|---|
+| `APX3A_Cases_Studies.xlsx` | Appendix 3A — the 75 academic sources, one row per source |
+| `APX3B_Cases_Guidelines.xlsx` | Appendix 3B — the 18 industry documents, one row per document |
+
+Both appendices share a column-naming convention. A prefix in square brackets
+marks the block a column belongs to: `[BIB]` bibliographic metadata, `[MET]`
+study design, `[PAR]` describer and evaluator profiles, and `[COD]` the
+proportional coverage of each node of the AD Quality Dimensions framework —
+the percentage of that source's material coded at the node — so a value of
+zero means the node was not coded in that source. The `[COD]` columns run
+parents first (Service, Script, Voice, Sound), then the thirteen children,
+then the grandchildren and great-grandchildren; the code below selects columns
+by name, never by position.
+
+**Reproducibility.** Paths are relative, so the document runs from wherever
+the repository is cloned. The code uses R's native pipe and so needs R 4.1 or
+later. The typeface used in the published figures, Gill Sans MT, is a system
+font and may not be installed; if it is missing the code silently falls back
+to the device default, which changes the lettering but nothing else. Package
+versions used for the last compilation are printed at the end.
+
+# Setup
+
+```{r libraries}
+library(readxl)     # read the two .xlsx appendices
+library(dplyr)      # data manipulation
+library(tidyr)      # reshaping (pivot_longer, crossing, separate_longer_delim)
+library(tibble)     # tribble(), tibble()
+library(purrr)      # map_dbl(), pmap_dfr(), map_dfr()
+library(stringr)    # str_detect(), str_remove()
+library(forcats)    # fct_reorder()
+library(readr)      # write_csv()
+library(ggplot2)    # all figures
+library(scales)     # axis labels, alpha(), rescale()
+library(ggrepel)    # Figure 2 value labels
+library(patchwork)  # Figure 3 panel composition
+library(ggforce)    # Figure 7 node circles
+```
+
+```{r paths}
+DATA_DIR <- "."
+FIG_DIR  <- "figures"
+dir.create(FIG_DIR, showWarnings = FALSE, recursive = TRUE)
+
+find_appendix <- function(names) {
+  candidates <- file.path(DATA_DIR, names)
+  found <- candidates[file.exists(candidates)]
+  if (!length(found)) {
+    stop("Workbook not found. Looked for:\n  ", paste(candidates, collapse = "\n  "))
+  }
+  found[1]
+}
+
+APX_A <- find_appendix(c("APX3A_Cases_Studies.xlsx"))        # academic studies
+APX_B <- find_appendix(c("APX3B_Cases_Guidelines.xlsx"))     # industry guidelines
+```
+
+## Typography and output devices
+
+The published figures are set in Gill Sans MT. `pick_font()` uses it when the
+system has it and falls back to the graphics device's default family
+otherwise, so the document knits on any machine.
+
+```{r typography}
+pick_font <- function(preferred = "Gill Sans MT") {
+  installed <- tryCatch(
+    unique(systemfonts::system_fonts()$family),
+    error = function(e) character(0)
+  )
+  if (preferred %in% installed) preferred else ""   # "" = device default
+}
+
+FONT <- pick_font()
+
+# cairo_pdf embeds the font and handles transparency; plain pdf() is the
+# fallback on builds of R compiled without cairo support.
+PDF_DEVICE <- if (isTRUE(capabilities("cairo"))) grDevices::cairo_pdf else grDevices::pdf
+
+save_figure <- function(plot, stem, width, height,
+                        png_width = width, png_height = height, dpi = 900) {
+  ggsave(file.path(FIG_DIR, paste0(stem, ".pdf")), plot,
+         device = PDF_DEVICE, width = width, height = height, units = "in")
+  ggsave(file.path(FIG_DIR, paste0(stem, ".png")), plot,
+         device = "png", dpi = dpi, bg = "white",
+         width = png_width, height = png_height, units = "in")
+  invisible(file.path(FIG_DIR, stem))
+}
+```
+
+## Palette
+
+One palette runs through every figure. The four dimension hues are taken from
+the Okabe-Ito colourblind-safe set and always carry the same meaning: amber is
+Service, blue Script, green Voice, pink Sound. The saturated variant fills
+marks, the dark variant sets type on white. Where a figure contrasts the two
+disciplines instead of the four dimensions, it reuses the Script blue for
+translation studies and the Service amber for computer science.
+
+```{r palette}
+DIM_SAT <- c(SERVICE = "#E69F00", SCRIPT = "#0072B2",
+             VOICE   = "#009E73", SOUND  = "#CC79A7")
+
+DIM_DARK <- c(SERVICE = "#9E6400", SCRIPT = "#004F80",
+              VOICE   = "#006B4E", SOUND  = "#7A2E5A")
+
+DIM_LITE <- c(SERVICE = "#FDE8B0", SCRIPT = "#C5E3F2",
+              VOICE   = "#B2EAD8", SOUND  = "#F4DBF0")
+
+COL_TS <- "#0072B2"   # translation studies
+COL_CS <- "#E69F00"   # computer science
+```
+
+## Reading the appendices
+
+`to_num()` is the one piece of defensive parsing the pipeline needs: a handful
+of cells in Appendix 3B were entered on a locale that writes decimals with a
+comma (`0,00`), and they are read as text. Converting the separator before
+`as.numeric()` keeps those cells numeric without editing the appendix itself.
+
+```{r read-data}
+to_num <- function(x) {
+  suppressWarnings(as.numeric(gsub(",", ".", as.character(x))))
+}
+
+studies    <- read_excel(APX_A)   # Appendix 3A
+guidelines <- read_excel(APX_B)   # Appendix 3B
+
+# Node names in the framework's own vocabulary: four parents, thirteen children.
+PARENTS <- c("SERVICE", "SCRIPT", "VOICE", "SOUND")
+
+CHILDREN_BY_PARENT <- list(
+  SERVICE = c("COMMISSIONING", "ACCESS-TO-ACCESS", "PRE-SHOW ACCESS",
+              "AUGMENTED ACCESS", "QUALITY ASSURANCE"),
+  SCRIPT  = c("CONTENT", "LANGUAGE", "TIMING", "SKOPOS"),
+  VOICE   = c("ARTICULATION", "PERFORMANCE"),
+  SOUND   = c("FIDELITY", "MIXING")
+)
+
+# Human-readable labels for the child nodes, used in figure axes and legends.
+CHILD_LABELS <- c(
+  COMMISSIONING       = "Commissioning",
+  `ACCESS-TO-ACCESS`  = "Access-to-access",
+  `PRE-SHOW ACCESS`   = "Pre-show access",
+  `AUGMENTED ACCESS`  = "Augmented access",
+  `QUALITY ASSURANCE` = "Quality assurance",
+  CONTENT             = "Content",
+  LANGUAGE            = "Language",
+  TIMING              = "Timing",
+  SKOPOS              = "Skopos",
+  ARTICULATION        = "Articulation",
+  PERFORMANCE         = "Performance",
+  FIDELITY            = "Fidelity",
+  MIXING              = "Mixing"
+)
+
+# Which parent each child belongs to, derived from the list rather than retyped.
+PARENT_OF <- setNames(
+  rep(names(CHILDREN_BY_PARENT), lengths(CHILDREN_BY_PARENT)),
+  unlist(CHILDREN_BY_PARENT, use.names = FALSE)
+)
+
+cat(nrow(studies), "academic sources;", nrow(guidelines), "industry documents\n")
+```
+
+```{r column-check}
+# Fail early and legibly if an expected coding column is absent, rather than
+# producing a figure with a silently empty node.
+needed <- paste0("[COD] ", c(PARENTS, unlist(CHILDREN_BY_PARENT, use.names = FALSE)))
+missing_a <- setdiff(needed, names(studies))
+missing_b <- setdiff(needed, names(guidelines))
+if (length(missing_a) || length(missing_b)) {
+  stop("Coding columns not found:\n  3A: ", paste(missing_a, collapse = ", "),
+       "\n  3B: ", paste(missing_b, collapse = ", "))
+}
+cat("All", length(needed), "parent and child coding columns present in both appendices.\n")
+```
+
+`discipline_of()` collapses the `[BIB] Discipline` column into the two
+disciplines the article compares. Everything else — communication studies,
+disability studies, anthropology — becomes `"Other"`, and unassigned rows
+become `NA` so that they drop out of comparisons rather than forming a
+spurious category.
+
+```{r discipline}
+discipline_of <- function(x) {
+  dplyr::case_when(
+    grepl("translation", x, ignore.case = TRUE) ~ "Translation studies",
+    grepl("computer",    x, ignore.case = TRUE) ~ "Computer science",
+    is.na(x) | x == "Unassigned"                ~ NA_character_,
+    TRUE                                        ~ "Other"
+  )
+}
+```
+
+# Figure 2 — Inter-rater agreement
+
+Percent agreement, Cohen's $\kappa$ and Gwet's AC1 at each hierarchical level
+of the two frameworks that were double-coded. The agreement statistics are
+reported in Section 2.6 of the article and are entered here as literals: they
+come from the reliability sub-sample, not from the charted appendices, so
+there is nothing for the code to recompute. Challenges and Limitations do not have any grandchild nodes, which leaves $\kappa$ and AC1 undefined; those two cells are `NA` and are simply not drawn.
+
+The two reference lines mark the conventional Landis and Koch (1977)
+thresholds. They are drawn with `geom_hline()`, which produces no legend key
+of its own, so an invisible `geom_line()` layer (`colour = NA`) is added
+purely to give the legend engine something to build a "Threshold" key from.
+
+```{r figure-2, fig.width=12, fig.height=5.5}
+BASE_F2 <- 15
+
+irr <- tribble(
+  ~Framework,                 ~Level,       ~PA,   ~Kappa, ~AC1,
+  "AD Quality Dimensions",    "Parent",     0.966, 0.947,  0.967,
+  "AD Quality Dimensions",    "Child",      0.824, 0.804,  0.825,
+  "AD Quality Dimensions",    "Grandchild", 0.856, 0.851,  0.856,
+  "Challenges & Limitations", "Parent",     0.836, 0.793,  0.800,
+  "Challenges & Limitations", "Child",      0.882, 0.814,  0.851,
+  "Challenges & Limitations", "Grandchild", 1.000, NA,     NA
+) |>
+  mutate(
+    Level     = factor(Level, levels = c("Parent", "Child", "Grandchild")),
+    Framework = factor(Framework, levels = c("AD Quality Dimensions",
+                                             "Challenges & Limitations"))
+  ) |>
+  pivot_longer(c(PA, Kappa, AC1), names_to = "Metric", values_to = "Value") |>
+  mutate(Metric = factor(
+    Metric,
+    levels = c("PA", "Kappa", "AC1"),
+    labels = c("Percent agreement", "Cohen’s κ", "Gwet’s AC1")
+  ))
+
+thresholds <- tibble(
+  yintercept = c(0.61, 0.81),
+  label      = c("Substantial (0.61)", "Almost perfect (0.81)")
+)
+
+fig2 <- ggplot(irr, aes(x = Level, y = Value,
+                        colour = Framework, group = Framework)) +
+  geom_hline(yintercept = 0.61, linetype = "dashed",
+             colour = "#E50914", linewidth = 0.7, inherit.aes = FALSE) +
+  geom_hline(yintercept = 0.81, linetype = "dotted",
+             colour = "#03A860", linewidth = 1.0, inherit.aes = FALSE) +
+  # Invisible layer: exists only so the threshold lines acquire a legend key.
+  geom_line(data = thresholds,
+            aes(x = 1, y = yintercept, linetype = label, linewidth = label),
+            colour = NA, inherit.aes = FALSE) +
+  scale_linetype_manual(
+    name   = "Threshold",
+    values = c("Substantial (0.61)" = "dashed",
+               "Almost perfect (0.81)" = "dotted"),
+    guide  = guide_legend(order = 1,
+                          override.aes = list(colour    = c("#03A860", "#E50914"),
+                                              linewidth = c(1.0, 0.7)))
+  ) +
+  scale_linewidth_manual(
+    name   = "Threshold",
+    values = c("Substantial (0.61)" = 0.55, "Almost perfect (0.81)" = 1.30),
+    guide  = "none"
+  ) +
+  geom_line(linewidth = 0.90, alpha = 0.90, na.rm = TRUE) +
+  geom_point(aes(shape = Framework), size = 3.2, stroke = 0.55, na.rm = TRUE) +
+  geom_text_repel(
+    aes(label = ifelse(is.na(Value), "", sprintf("%.2f", Value)),
+        colour = Framework),
+    size = BASE_F2 * 0.26, family = FONT, show.legend = FALSE, na.rm = TRUE,
+    nudge_y = 0.028,          # lift labels clear of the marker first
+    direction = "y",          # then let them repel vertically only
+    segment.size = 0.30, segment.color = "grey65", segment.alpha = 0.70,
+    min.segment.length = 0.15, box.padding = 0.18, point.padding = 0.20,
+    force = 1.2, max.iter = 3000, max.overlaps = Inf
+  ) +
+  facet_wrap(~Metric, nrow = 1) +
+  scale_colour_manual(
+    name   = "Framework",
+    values = c("AD Quality Dimensions" = DIM_SAT[["SCRIPT"]],
+               "Challenges & Limitations" = DIM_SAT[["SERVICE"]]),
+    guide  = guide_legend(order = 2,
+                          override.aes = list(linewidth = 1.0, size = 3.2))
+  ) +
+  scale_shape_manual(
+    name   = "Framework",
+    values = c("AD Quality Dimensions" = 16, "Challenges & Limitations" = 17),
+    guide  = guide_legend(order = 2)
+  ) +
+  scale_y_continuous(
+    name   = "Agreement / coefficient value",
+    limits = c(0, 1.12), breaks = seq(0, 1, 0.2),
+    labels = label_number(accuracy = 0.1),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  scale_x_discrete(name = "Hierarchical level") +
+  theme_minimal(base_size = BASE_F2, base_family = FONT) +
+  theme(
+    panel.grid.minor   = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey92", linewidth = 0.32),
+    axis.line.x        = element_line(colour = "grey75", linewidth = 0.30),
+    axis.ticks.x       = element_line(colour = "grey75", linewidth = 0.30),
+    axis.ticks.length  = unit(3, "pt"),
+    axis.title.x       = element_text(size = BASE_F2 * 0.90, colour = "grey30",
+                                      margin = margin(t = 10)),
+    axis.title.y       = element_text(size = BASE_F2 * 0.90, colour = "grey30",
+                                      margin = margin(r = 10)),
+    axis.text          = element_text(size = BASE_F2 * 0.82, colour = "grey40"),
+    strip.text         = element_text(face = "bold", size = BASE_F2 * 0.95,
+                                      colour = "grey15", margin = margin(b = 8)),
+    legend.position    = "bottom",
+    legend.box         = "vertical",
+    legend.spacing.y   = unit(0.15, "cm"),
+    legend.title       = element_text(face = "bold", size = BASE_F2 * 0.88),
+    legend.text        = element_text(size = BASE_F2 * 0.82),
+    plot.background    = element_rect(fill = "white", colour = NA),
+    plot.margin        = margin(14, 16, 10, 14)
+  )
+
+save_figure(fig2, "Figure2", width = 12, height = 5.5)
+fig2
+```
+
+# Figure 3 — Corpus profile
+
+Three panels over the academic strand of the corpus: publications per year by
+discipline, AD modality within each discipline, and the split between
+empirical and theoretical work. `Unassigned` is treated as missing throughout,
+so a source with no recorded modality is left out of the modality panel rather
+than counted as an extra category.
+
+```{r figure-3-data}
+BASE_F3 <- 17
+
+corpus <- studies |>
+  mutate(
+    pub_year   = to_num(`[BIB] Publication Year`),
+    discipline = discipline_of(`[BIB] Discipline`),
+    modality   = if_else(`[BIB] AD Modality` == "Unassigned" |
+                           is.na(`[BIB] AD Modality`),
+                         NA_character_, `[BIB] AD Modality`),
+    study_type = if_else(`[MET] Study Type` == "Unassigned" |
+                           is.na(`[MET] Study Type`),
+                         NA_character_, `[MET] Study Type`)
+  )
+```
+
+```{r figure-3-theme}
+# One theme shared by the three panels, so they read as a single figure.
+theme_corpus <- function() {
+  theme_minimal(base_size = BASE_F3, base_family = FONT) +
+    theme(
+      panel.grid.minor  = element_blank(),
+      panel.grid.major  = element_line(colour = "grey92", linewidth = 0.32),
+      axis.line         = element_line(colour = "grey75", linewidth = 0.30),
+      axis.ticks        = element_line(colour = "grey75", linewidth = 0.30),
+      axis.ticks.length = unit(3, "pt"),
+      axis.title        = element_text(size = BASE_F3 * 0.88, colour = "grey30",
+                                       margin = margin(t = 8, r = 8)),
+      axis.text         = element_text(size = BASE_F3 * 0.80, colour = "grey40"),
+      legend.text       = element_text(size = BASE_F3 * 0.78),
+      legend.title      = element_text(size = BASE_F3 * 0.82, face = "bold"),
+      legend.key.size   = unit(0.45, "cm"),
+      plot.title        = element_text(size = BASE_F3 * 0.95, face = "bold",
+                                       colour = "grey15", margin = margin(b = 6)),
+      plot.background   = element_rect(fill = "white", colour = NA),
+      plot.margin       = margin(10, 12, 10, 10)
+    )
+}
+```
+
+**Left panel.** Grey bars give the yearly total across the whole academic
+strand; the two lines pick out the two dominant disciplines, so the gap
+between the bars and the lines is everything else.
+
+```{r figure-3-left}
+year_total <- corpus |>
+  filter(!is.na(pub_year)) |>
+  count(pub_year, name = "n_total")
+
+year_discipline <- corpus |>
+  filter(!is.na(pub_year),
+         discipline %in% c("Translation studies", "Computer science")) |>
+  count(pub_year, discipline, name = "n") |>
+  mutate(discipline = factor(discipline,
+                             levels = c("Translation studies", "Computer science")))
+
+p_years <- ggplot() +
+  geom_col(data = year_total, aes(x = pub_year, y = n_total),
+           fill = "grey88", width = 0.75) +
+  geom_line(data = year_discipline, aes(x = pub_year, y = n, colour = discipline),
+            linewidth = 1.10) +
+  geom_point(data = year_discipline, aes(x = pub_year, y = n, colour = discipline),
+             size = 2.2, fill = "white", shape = 21, stroke = 1.2) +
+  scale_colour_manual(values = c("Translation studies" = COL_TS,
+                                 "Computer science"    = COL_CS),
+                      name = "Discipline") +
+  scale_x_continuous(name = "Year", breaks = pretty_breaks(6)) +
+  scale_y_continuous(name = "Publications",
+                     expand = expansion(mult = c(0, 0.10)),
+                     breaks = pretty_breaks(5)) +
+  theme_corpus() +
+  theme(legend.position = "bottom", legend.title = element_blank())
+```
+
+**Middle panel.** Modality shares within each discipline. Proportions are
+computed per discipline, so each bar sums to 100% and the two are comparable
+despite very different denominators. Long modality names are broken over two
+lines for the legend.
+
+```{r figure-3-middle}
+MODALITY_COLS <- c(
+  "Pre-recorded\n(screen)"              = DIM_SAT[["SCRIPT"]],
+  "Mixed"                               = DIM_SAT[["SERVICE"]],
+  "Pre-recorded\n(architecture/museum)" = DIM_SAT[["VOICE"]],
+  "Live"                                = DIM_SAT[["SOUND"]]
+)
+
+discipline_modality <- corpus |>
+  filter(!is.na(discipline), !is.na(modality), discipline != "Other") |>
+  count(discipline, modality, name = "n") |>
+  group_by(discipline) |>
+  mutate(prop = n / sum(n)) |>
+  ungroup() |>
+  mutate(
+    discipline = factor(discipline,
+                        levels = c("Translation studies", "Computer science")),
+    modality   = recode(
+      modality,
+      "Pre-recorded (screen)"              = "Pre-recorded\n(screen)",
+      "Pre-recorded (architecture/museum)" = "Pre-recorded\n(architecture/museum)"
+    ),
+    modality   = factor(modality, levels = names(MODALITY_COLS))
+  )
+
+p_modality <- ggplot(discipline_modality, aes(x = discipline, y = prop, fill = modality)) +
+  geom_col(width = 0.72, colour = "white", linewidth = 0.4) +
+  facet_wrap(~discipline, nrow = 1, scales = "free_x",
+             labeller = labeller(discipline = label_wrap_gen(width = 12))) +
+  scale_y_continuous(name = "Share of studies",
+                     labels = percent_format(accuracy = 1),
+                     expand = expansion(mult = c(0, 0.02)),
+                     breaks = seq(0, 1, 0.25)) +
+  scale_x_discrete(labels = NULL, breaks = NULL) +
+  scale_fill_manual(values = MODALITY_COLS, name = "AD Modality",
+                    guide = guide_legend(ncol = 2)) +
+  theme_corpus() +
+  theme(
+    axis.title.x      = element_blank(),
+    axis.line.x       = element_blank(),
+    axis.ticks.x      = element_blank(),
+    strip.text        = element_text(face = "bold", size = BASE_F3 * 0.85,
+                                     colour = "grey15",
+                                     margin = margin(b = 8, t = 4)),
+    strip.clip        = "off",
+    legend.position   = "bottom",
+    legend.title      = element_text(size = BASE_F3 * 0.82, face = "bold",
+                                     hjust = 0.5),
+    legend.key.height = unit(0.55, "cm"),
+    legend.text       = element_text(size = BASE_F3 * 0.72, lineheight = 0.85)
+  )
+```
+
+**Right panel.** Counts of empirical and theoretical studies, ordered by size.
+
+```{r figure-3-right}
+TYPE_COLS <- c("Empirical" = DIM_SAT[["SCRIPT"]], "Theoretical" = DIM_SAT[["SERVICE"]])
+
+study_types <- corpus |>
+  filter(!is.na(study_type)) |>
+  count(study_type, name = "n") |>
+  mutate(study_type = fct_reorder(study_type, n))
+
+p_type <- ggplot(study_types, aes(y = study_type, x = n, fill = study_type)) +
+  geom_col(width = 0.55, colour = "white") +
+  geom_text(aes(label = n), hjust = -0.35, size = BASE_F3 * 0.28,
+            colour = "grey30", family = FONT) +
+  scale_fill_manual(values = TYPE_COLS, guide = "none") +
+  scale_x_continuous(name = "Number of studies",
+                     expand = expansion(mult = c(0, 0.14)),
+                     breaks = pretty_breaks(5)) +
+  scale_y_discrete(name = NULL) +
+  theme_corpus() +
+  theme(axis.line.y = element_blank(), axis.ticks.y = element_blank())
+```
+
+```{r figure-3, fig.width=14, fig.height=5}
+fig3 <- p_years + p_modality + p_type +
+  plot_layout(ncol = 3, widths = c(1.4, 1.6, 1.1)) &
+  theme(plot.background = element_rect(fill = "white", colour = NA))
+
+save_figure(fig3, "Figure3", width = 14, height = 5)
+fig3
+```
+
+# Figure 5 — Parent-level prevalence, academic against industry
+
+A dumbbell plot. Each row is one of the four dimensions; the two markers are
+the share of sources in each corpus that code that dimension at all, and the
+connector is the distance between them. Corpus is encoded by marker *style* —
+filled for academic, hollow for industry — never by colour, so that colour can
+stay reserved for the dimension. Rows are ordered by pooled prevalence, least
+prevalent at the bottom.
+
+```{r figure-5, fig.width=8, fig.height=4.6}
+BASE_F5 <- 12
+W_F5 <- 8; H_F5 <- 4.6
+
+GUIDE_COL <- "grey93"   # row guides
+VALUE_COL <- "grey45"   # the two percentages on each row
+
+# Device family, and the same fallback the rest of the document uses.
+DEV_FAMILY_F5 <- if (nzchar(FONT)) FONT else "sans"
+
+# Share of sources in a corpus that code a given node above zero.
+share <- function(data, node) {
+  sum(to_num(data[[paste0("[COD] ", node)]]) > 0, na.rm = TRUE) / nrow(data) * 100
+}
+
+prev <- tibble(dim = PARENTS) |>
+  mutate(
+    acad     = map_dbl(dim, ~ share(studies, .x)),
+    industry = map_dbl(dim, ~ share(guidelines, .x)),
+    pooled   = map_dbl(dim, function(node) {
+      pooled_values <- c(to_num(studies[[paste0("[COD] ", node)]]),
+                         to_num(guidelines[[paste0("[COD] ", node)]]))
+      sum(pooled_values > 0, na.rm = TRUE) /
+        (nrow(studies) + nrow(guidelines)) * 100
+    })
+  ) |>
+  arrange(pooled) |>                      # most prevalent ends up on top
+  mutate(y = row_number(), lo = pmin(acad, industry), hi = pmax(acad, industry),
+         sat = DIM_SAT[dim], dark = DIM_DARK[dim])
+
+knitr::kable(
+  prev |> select(Dimension = dim, Academic = acad,
+                 Industry = industry, Pooled = pooled),
+  digits = 1, caption = "Prevalence (% of sources coding the dimension)"
+)
+
+write_csv(prev |> select(dim, acad, industry, pooled),
+          file.path(FIG_DIR, "Figure5_summary.csv"))
+
+SOURCE_LEVELS <- c("Academic studies", "Industry sources")
+
+pts <- prev |>
+  select(dim, y, sat, acad, industry) |>
+  pivot_longer(c(acad, industry), names_to = "src", values_to = "x") |>
+  mutate(
+    source = factor(if_else(src == "acad", SOURCE_LEVELS[1], SOURCE_LEVELS[2]),
+                    levels = SOURCE_LEVELS),
+    # Identity-mapped: the dimension's colour when filled, white when hollow.
+    fill = if_else(src == "acad", sat, "white")
+  )
+
+PAD <- 2.4     # gap between a marker and its value, in % units
+vals <- bind_rows(
+  prev |> transmute(y, x = lo - PAD, hjust = 1, label = sprintf("%.1f%%", lo)),
+  prev |> transmute(y, x = hi + PAD, hjust = 0, label = sprintf("%.1f%%", hi))
+)
+
+NAME_SIZE   <- 3.5   # dimension names, in ggplot text units (about 10 pt)
+NAME_GAP_MM <- 4     # gap between a name and the 0% end of its row guide
+
+theme_dumbbell <- theme_minimal(base_size = BASE_F5, base_family = FONT) +
+  theme(
+    panel.grid        = element_blank(),
+    axis.ticks        = element_blank(),
+    axis.text.y       = element_blank(),
+    axis.title.y      = element_blank(),
+    axis.text.x       = element_text(size = 9.5, colour = "grey50",
+                                     margin = margin(t = 6)),
+    axis.title.x      = element_text(size = 10.5, colour = "grey35",
+                                     margin = margin(t = 10)),
+    legend.position      = "bottom",
+    legend.justification = "center",
+    legend.direction     = "horizontal",
+    legend.title         = element_blank(),
+    legend.text          = element_text(size = 9.5, colour = "grey35",
+                                        margin = margin(r = 12, l = 2)),
+    legend.key.width  = unit(10, "pt"),
+    legend.key.height = unit(10, "pt"),
+    legend.margin     = margin(0, 0, 0, 0),
+    legend.box.spacing = unit(14, "pt"),
+    plot.background   = element_rect(fill = "white", colour = NA)
+  )
+
+# The plot is built twice: once to measure it, once with the reserved margin.
+base_plot <- function(left_pt) {
+  ggplot() +
+    geom_segment(data = prev, aes(x = 0, xend = 100, y = y, yend = y),
+                 colour = GUIDE_COL, linewidth = .35) +
+    # Connector softened, so the markers carry the reading.
+    geom_segment(data = prev,
+                 aes(x = acad, xend = industry, y = y, yend = y, colour = sat),
+                 linewidth = .9, alpha = .45, lineend = "round") +
+    geom_point(data = pts, aes(x, y, shape = source, fill = fill, colour = sat),
+               size = 3.4, stroke = .9) +
+    geom_text(data = vals, aes(x, y, label = label, hjust = hjust),
+              vjust = .5, size = 3.2, colour = VALUE_COL, family = FONT) +
+    # Both corpora use shape 21; openness comes from the fill, and the legend
+    # keys are overridden to neutral grey so they read as style, not dimension.
+    scale_shape_manual(
+      values = c("Academic studies" = 21, "Industry sources" = 21),
+      guide  = guide_legend(override.aes = list(
+        fill = c("grey40", "white"), colour = "grey40", size = 3, stroke = .8))
+    ) +
+    scale_fill_identity() + scale_colour_identity() +
+    scale_x_continuous(name = "Prevalence within corpus (% of sources)",
+                       breaks = seq(0, 100, 25),
+                       labels = paste0(seq(0, 100, 25), "%"),
+                       expand = expansion(0)) +
+    scale_y_continuous(expand = expansion(0)) +
+    # Limits live on the coordinate system, so the names set left of 0% are
+    # not treated as out-of-range data and dropped.
+    coord_cartesian(xlim = c(0, 100), ylim = c(.5, nrow(prev) + .5),
+                    expand = FALSE, clip = "off") +
+    theme_dumbbell + theme(plot.margin = margin(14, 22, 10, left_pt))
+}
+
+# Measure the names in the output font on the kind of device used for the
+# output, reserve that much room on the left, then convert the physical gap
+# into % units so the result is independent of the figure's size.
+tmp_dev <- tempfile(fileext = ".pdf")
+PDF_DEVICE(tmp_dev, width = W_F5, height = H_F5, family = DEV_FAMILY_F5)
+text_w_mm <- function(d) {
+  grob <- grid::textGrob(d, gp = grid::gpar(fontfamily = FONT, fontface = "bold",
+                                            fontsize = NAME_SIZE * .pt))
+  grid::convertWidth(grid::grobWidth(grob), "mm", valueOnly = TRUE)
+}
+name_w_mm <- max(map_dbl(prev$dim, text_w_mm))
+left_pt <- (name_w_mm + NAME_GAP_MM + 2) * 72.27 / 25.4
+g <- ggplotGrob(base_plot(left_pt))
+panel_w_mm <- W_F5 * 25.4 - grid::convertWidth(sum(g$widths), "mm", valueOnly = TRUE)
+invisible(grDevices::dev.off()); unlink(tmp_dev)
+gap_units <- NAME_GAP_MM / (panel_w_mm / 100)
+
+fig5 <- base_plot(left_pt) +
+  annotate("text", x = -gap_units, y = prev$y, label = prev$dim,
+           colour = prev$dark, hjust = 1, vjust = .5,
+           size = NAME_SIZE, fontface = "bold", family = FONT)
+
+draw_fig5 <- function() print(fig5)
+PDF_DEVICE(file.path(FIG_DIR, "Figure5.pdf"), width = W_F5, height = H_F5,
+           family = DEV_FAMILY_F5)
+draw_fig5(); invisible(grDevices::dev.off())
+grDevices::png(file.path(FIG_DIR, "Figure5.png"), width = W_F5, height = H_F5,
+               units = "in", res = 900, type = "cairo", bg = "white")
+draw_fig5(); invisible(grDevices::dev.off())
+
+fig5
+```
+
+# Figure 6 — Child-level prevalence by discipline
+
+A radar chart over the thirteen child nodes, drawn by hand in Cartesian
+coordinates rather than with `coord_polar()`, which gives direct control over
+where each spoke sits. The thirteen spokes are evenly spaced clockwise from
+the top, but grouped: the four Script children occupy the top right, Voice the
+bottom right, Sound the bottom left, and the five Service children the top
+left, with a colored arc drawn over each group's span. This follows the ordering in the pinwheel diagram (Figure 4).
+
+Because Script has four children and Service five, the wheel is rotated by
+half a step (`ROTATION`) so that the two largest groups sit opposite each
+other.
+
+```{r figure-6-layout}
+BASE_F6 <- 14
+
+# Node order around the wheel, clockwise from the top.
+WHEEL <- c(
+  CHILDREN_BY_PARENT$SCRIPT,    # positions 1-4,  top right
+  "PERFORMANCE", "ARTICULATION",# positions 5-6,  bottom right (Voice)
+  "MIXING", "FIDELITY",         # positions 7-8,  bottom left  (Sound)
+  "AUGMENTED ACCESS", "ACCESS-TO-ACCESS", "QUALITY ASSURANCE",
+  "COMMISSIONING", "PRE-SHOW ACCESS"   # positions 9-13, top left (Service)
+)
+stopifnot(setequal(WHEEL, unlist(CHILDREN_BY_PARENT, use.names = FALSE)))
+
+n_axes   <- length(WHEEL)
+ROTATION <- -pi / n_axes   # half a step clockwise; set to 0 to remove
+
+axis_angles <- tibble(
+  child = factor(WHEEL, levels = WHEEL),
+  angle = seq(pi / 2, pi / 2 - 2 * pi,
+              length.out = n_axes + 1)[-(n_axes + 1)] + ROTATION,
+  parent = PARENT_OF[WHEEL]
+)
+
+# Arc over each parent group, extended slightly past its outer spokes.
+ARC_RADIUS <- 1.08
+group_span <- axis_angles |>
+  group_by(parent) |>
+  summarise(start = min(angle), end = max(angle), .groups = "drop")
+
+arc_guides <- group_span |>
+  pmap_dfr(function(parent, start, end) {
+    pad <- (end - start) * 0.08
+    tidyr::crossing(parent = parent,
+                    t = seq(start - pad, end + pad, length.out = 150)) |>
+      mutate(x = cos(t) * ARC_RADIUS, y = sin(t) * ARC_RADIUS)
+  })
+```
+
+```{r figure-6-data}
+by_discipline <- studies |>
+  mutate(discipline = discipline_of(`[BIB] Discipline`)) |>
+  filter(discipline %in% c("Translation studies", "Computer science"))
+
+child_prev <- by_discipline |>
+  select(discipline, all_of(paste0("[COD] ", WHEEL))) |>
+  mutate(across(-discipline, to_num)) |>
+  group_by(discipline) |>
+  summarise(across(everything(), ~ mean(.x > 0, na.rm = TRUE)), .groups = "drop") |>
+  rename_with(~ sub("^\\[COD\\] ", "", .x), -discipline) |>
+  pivot_longer(-discipline, names_to = "child", values_to = "prop") |>
+  mutate(
+    child      = factor(child, levels = WHEEL),
+    discipline = factor(discipline,
+                        levels = c("Translation studies", "Computer science"))
+  )
+```
+
+```{r figure-6, fig.width=10, fig.height=9}
+# Polygon vertices; the first row is repeated at the end to close the shape.
+radar_polygons <- child_prev |>
+  left_join(select(axis_angles, child, angle), by = "child") |>
+  mutate(x = prop * cos(angle), y = prop * sin(angle)) |>
+  group_by(discipline) |>
+  group_modify(~ bind_rows(.x, .x[1, ])) |>
+  ungroup()
+
+grid_rings <- tidyr::crossing(r = c(0.25, 0.50, 0.75, 1.0),
+                              t = seq(0, 2 * pi, length.out = 300)) |>
+  mutate(x = r * cos(t), y = r * sin(t))
+
+spokes <- axis_angles |>
+  mutate(x0 = 0, y0 = 0, x1 = cos(angle), y1 = sin(angle),
+         spoke_col = DIM_SAT[parent])
+
+# Rim dots, sized by the mean of the two disciplines' prevalence.
+rim_dots <- child_prev |>
+  group_by(child) |>
+  summarise(mean_prev = mean(prop), .groups = "drop") |>
+  left_join(select(axis_angles, child, angle, parent), by = "child") |>
+  mutate(x = cos(angle), y = sin(angle),
+         dot_col  = DIM_SAT[parent],
+         dot_size = rescale(mean_prev, to = c(1.5, 4.0)))
+
+# Child labels sit at a fixed radius; alignment flips with the quadrant so
+# text always reads outwards.
+LABEL_RADIUS <- 1.18
+child_label_pos <- axis_angles |>
+  mutate(
+    child = as.character(child),
+    label = CHILD_LABELS[child],
+    col   = DIM_DARK[parent],
+    x     = LABEL_RADIUS * cos(angle),
+    y     = LABEL_RADIUS * sin(angle),
+    hjust = case_when(cos(angle) >  0.15 ~ 0, cos(angle) < -0.15 ~ 1, TRUE ~ 0.5),
+    vjust = case_when(sin(angle) >  0.15 ~ 0, sin(angle) < -0.15 ~ 1, TRUE ~ 0.5)
+  )
+
+# Parent labels sit further out, at the mid-angle of their group. The two
+# nudge vectors are the only hand-tuning in the figure: Service has an odd
+# number of children, so its midpoint falls on the "Quality assurance" spoke
+# and has to be slid into the gap beside it; Sound is pulled in slightly.
+PARENT_RADIUS   <- 1.48
+PARENT_R_NUDGE  <- c(SERVICE =  0.10, SCRIPT =  0.00, VOICE = -0.03, SOUND = -0.12)
+PARENT_ANG_NUDGE <- c(SERVICE = -0.13, SCRIPT = -0.07, VOICE =  0.13, SOUND =  0.06)
+
+parent_label_pos <- axis_angles |>
+  group_by(parent) |>
+  summarise(mid_angle = atan2(mean(sin(angle)), mean(cos(angle))), .groups = "drop") |>
+  mutate(
+    col = DIM_DARK[parent],
+    r   = PARENT_RADIUS + unname(PARENT_R_NUDGE[parent]),
+    ang = mid_angle     + unname(PARENT_ANG_NUDGE[parent]),
+    x   = r * cos(ang),
+    y   = r * sin(ang),
+    # Alignment keys off the un-nudged midpoint, so retuning the offsets
+    # cannot flip a label from right-aligned to centred.
+    hjust = case_when(cos(mid_angle) >  0.15 ~ 0,
+                      cos(mid_angle) < -0.15 ~ 1, TRUE ~ 0.5),
+    vjust = case_when(sin(mid_angle) >  0.15 ~ 0,
+                      sin(mid_angle) < -0.15 ~ 1, TRUE ~ 0.5)
+  )
+
+# Ring percentages are anchored to the top-left spoke so they read outwards.
+ref_angle   <- axis_angles$angle[axis_angles$child == "PRE-SHOW ACCESS"]
+grid_labels <- tibble(
+  r = c(0.25, 0.50, 0.75, 1.0), label = c("25%", "50%", "75%", "100%"),
+  x = (r + 0.05) * cos(ref_angle), y = (r + 0.05) * sin(ref_angle)
+)
+
+discipline_line <- c("Translation studies" = COL_TS, "Computer science" = COL_CS)
+discipline_fill <- c("Translation studies" = alpha(COL_TS, 0.10),
+                     "Computer science"    = alpha(COL_CS, 0.10))
+
+LEGEND_X <- -0.40   # single knob for the manual legend's horizontal position
+
+fig6 <- ggplot() +
+  geom_path(data = grid_rings, aes(x = x, y = y, group = r),
+            colour = "grey91", linewidth = 0.28) +
+  geom_text(data = grid_labels, aes(x = x, y = y, label = label),
+            size = BASE_F6 * 0.20, colour = "grey55", family = FONT, hjust = 1) +
+  geom_segment(data = spokes,
+               aes(x = x0, y = y0, xend = x1, yend = y1, colour = I(spoke_col)),
+               linewidth = 0.38, alpha = 0.50) +
+  geom_path(data = arc_guides,
+            aes(x = x, y = y, group = parent, colour = I(DIM_SAT[parent])),
+            linewidth = 5.5, lineend = "butt", alpha = 0.90) +
+  geom_point(data = rim_dots,
+             aes(x = x, y = y, fill = I(dot_col), size = I(dot_size)),
+             shape = 21, colour = "white", stroke = 0.6, show.legend = FALSE) +
+  geom_polygon(data = radar_polygons,
+               aes(x = x, y = y, group = discipline,
+                   fill = I(discipline_fill[as.character(discipline)])),
+               show.legend = FALSE) +
+  geom_path(data = radar_polygons,
+            aes(x = x, y = y, group = discipline,
+                colour = I(discipline_line[as.character(discipline)])),
+            linewidth = 0.90, lineend = "round", linejoin = "round") +
+  geom_point(data = radar_polygons |> group_by(discipline) |> slice(-n()) |> ungroup(),
+             aes(x = x, y = y,
+                 colour = I(discipline_line[as.character(discipline)])),
+             size = 2.0, show.legend = FALSE) +
+  geom_text(data = child_label_pos,
+            aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust,
+                colour = I(col)),
+            size = BASE_F6 * 0.27, fontface = "plain", family = FONT) +
+  geom_text(data = parent_label_pos,
+            aes(x = x, y = y, label = parent, hjust = hjust, vjust = vjust,
+                colour = I(col)),
+            size = BASE_F6 * 0.38, fontface = "bold", family = FONT) +
+  # Manual legend: the identity scales above leave no mapped aesthetic for
+  # ggplot to build a key from, so the two entries are drawn as annotations.
+  annotate("segment", x = LEGEND_X, xend = LEGEND_X + 0.20,
+           y = -1.70, yend = -1.70, colour = COL_TS, linewidth = 0.90) +
+  annotate("point", x = LEGEND_X + 0.10, y = -1.70, colour = COL_TS, size = 2.2) +
+  annotate("text", x = LEGEND_X + 0.25, y = -1.70, label = "Translation studies",
+           hjust = 0, size = BASE_F6 * 0.27, family = FONT, colour = "grey15") +
+  annotate("segment", x = LEGEND_X, xend = LEGEND_X + 0.20,
+           y = -1.86, yend = -1.86, colour = COL_CS, linewidth = 0.90) +
+  annotate("point", x = LEGEND_X + 0.10, y = -1.86, colour = COL_CS, size = 2.2) +
+  annotate("text", x = LEGEND_X + 0.25, y = -1.86, label = "Computer science",
+           hjust = 0, size = BASE_F6 * 0.27, family = FONT, colour = "grey15") +
+  coord_equal(xlim = c(-2.30, 2.30), ylim = c(-2.05, 1.85), clip = "off") +
+  theme_void(base_size = BASE_F6, base_family = FONT) +
+  theme(plot.background = element_rect(fill = "white", colour = NA),
+        plot.margin = margin(14, 14, 14, 14))
+
+# The published PNG is square while the PDF is slightly portrait; both are
+# kept so the raster and vector versions match what appears in the article.
+save_figure(fig6, "Figure6", width = 10, height = 9,
+            png_width = 11, png_height = 11)
+fig6
+```
+
+# Figure 7 — Co-occurrence of child-level nodes
+
+A hierarchical edge bundling diagram over the pooled corpus (academic and
+industry together). Nodes are the four parents and their thirteen children,
+laid around a ring in four arcs; an edge joins two nodes when they are coded
+in the same source, and its weight is the proportion of sources in which both
+appear. Edges are routed through a hub point inside each arc, which bundles
+related links into ribbons instead of a hairball of straight chords. Only
+pairs occurring in at least 22% of sources are drawn.
+
+```{r figure-7-nodes}
+BASE_F7 <- 13
+
+# Order of the arcs around the ring, anticlockwise from three o'clock:
+# Script on the right, Service on the left, then Sound and Voice below.
+ARC_ORDER <- c("SCRIPT", "SERVICE", "SOUND", "VOICE")
+
+# Within each arc the parent leads, then its children in the reverse of the
+# order used in Figure 6 — that ring runs clockwise, this one anticlockwise,
+# so reversing makes both figures read the same way down the page.
+NODES <- bind_rows(lapply(ARC_ORDER, function(parent) {
+  children <- rev(CHILDREN_BY_PARENT[[parent]])
+  tibble(
+    id     = c(parent, children),
+    label  = c(parent, unname(CHILD_LABELS[children])),
+    parent = parent
+  )
+}))
+
+knitr::kable(NODES, caption = "Ring order: 4 parents and 13 children")
+```
+
+```{r figure-7-cooccurrence}
+# Pool the two corpora over their shared coding columns.
+coding_matrix <- function(data) {
+  cols <- names(data)[str_detect(names(data), "^\\[COD\\]")]
+  data |>
+    select(all_of(cols)) |>
+    mutate(across(everything(), to_num)) |>
+    mutate(across(everything(), ~ replace_na(.x, 0))) |>
+    rename_with(~ str_remove(.x, "^\\[COD\\] "))
+}
+
+pooled <- bind_rows(coding_matrix(studies), coding_matrix(guidelines))
+cat("Pooled corpus:", nrow(pooled), "sources\n")
+
+# Pairwise co-occurrence: the share of sources coding both nodes.
+node_pairs <- combn(NODES$id, 2, simplify = FALSE)
+
+cooccurrence <- map_dfr(node_pairs, function(pair) {
+  a <- pair[1]; b <- pair[2]
+  tibble(from = a, to = b,
+         weight = mean((pooled[[a]] > 0) & (pooled[[b]] > 0), na.rm = TRUE))
+}) |>
+  filter(weight > 0)
+
+EDGE_THRESHOLD <- 0.22
+edges <- cooccurrence |>
+  filter(weight >= EDGE_THRESHOLD) |>
+  arrange(weight)          # weakest drawn first, so the strongest sit on top
+
+cat(nrow(edges), "of", nrow(cooccurrence),
+    "co-occurring pairs pass the", EDGE_THRESHOLD, "threshold\n")
+```
+
+```{r figure-7-geometry}
+# Arcs take an angular width proportional to how many nodes they hold, with a
+# fixed gap between them; 8% of the circle is reserved for the four gaps.
+total_arc <- 2 * pi * 0.92
+group_gap <- 2 * pi * 0.08 / length(ARC_ORDER)
+
+arc_sizes <- NODES |>
+  count(parent) |>
+  mutate(parent = factor(parent, levels = ARC_ORDER)) |>
+  arrange(parent) |>
+  mutate(
+    arc       = n / nrow(NODES) * total_arc,
+    arc_end   = cumsum(arc + group_gap) - group_gap,
+    arc_start = arc_end - arc,
+    parent    = as.character(parent)
+  )
+
+node_pos <- NODES |>
+  mutate(parent = factor(parent, levels = ARC_ORDER)) |>
+  arrange(parent) |>
+  mutate(parent = as.character(parent)) |>
+  group_by(parent) |>
+  mutate(group_n = n(), group_i = row_number()) |>
+  ungroup() |>
+  left_join(select(arc_sizes, parent, arc, arc_start), by = "parent") |>
+  mutate(
+    angle = arc_start + (group_i - 0.5) / group_n * arc,
+    x     = cos(angle),
+    y     = sin(angle),
+    # Labels sit outside the rim, horizontal, anchored so they read outwards.
+    x_lab = cos(angle) * 1.20,
+    y_lab = sin(angle) * 1.20,
+    hjust = case_when(cos(angle) >  0.15 ~ 0, cos(angle) < -0.15 ~ 1, TRUE ~ 0.5),
+    vjust = case_when(sin(angle) >  0.60 ~ 0, sin(angle) < -0.60 ~ 1, TRUE ~ 0.5),
+    is_parent = id %in% ARC_ORDER
+  )
+
+arc_overlays <- arc_sizes |>
+  pmap_dfr(function(parent, n, arc, arc_end, arc_start) {
+    t <- seq(arc_start + 0.01, arc_end - 0.01, length.out = 300)
+    tibble(parent = parent, x = cos(t) * 1.08, y = sin(t) * 1.08)
+  })
+
+# One hub per arc, at a third of the radius; edges bend towards it.
+hubs <- arc_sizes |>
+  mutate(hub_angle = arc_start + arc / 2,
+         hub_x     = cos(hub_angle) * 0.32,
+         hub_y     = sin(hub_angle) * 0.32)
+
+# A cubic Bezier from node to node. Within an arc both control points are the
+# arc's own hub, giving a tight inward loop; across arcs each end bends
+# towards its own hub, which is what bundles parallel links together.
+bundle <- function(from_id, to_id, weight) {
+  a <- filter(node_pos, id == from_id)
+  b <- filter(node_pos, id == to_id)
+  hub_a <- filter(hubs, parent == a$parent)
+  hub_b <- filter(hubs, parent == b$parent)
+
+  p0 <- c(a$x, a$y); p1 <- c(b$x, b$y)
+  if (a$parent == b$parent) {
+    c1 <- c2 <- c(hub_a$hub_x, hub_a$hub_y)
+  } else {
+    c1 <- c(hub_a$hub_x * 0.65, hub_a$hub_y * 0.65)
+    c2 <- c(hub_b$hub_x * 0.65, hub_b$hub_y * 0.65)
+  }
+
+  t <- seq(0, 1, length.out = 100)
+  tibble(
+    x = (1 - t)^3 * p0[1] + 3 * (1 - t)^2 * t * c1[1] +
+        3 * (1 - t) * t^2 * c2[1] + t^3 * p1[1],
+    y = (1 - t)^3 * p0[2] + 3 * (1 - t)^2 * t * c1[2] +
+        3 * (1 - t) * t^2 * c2[2] + t^3 * p1[2],
+    t = t, from = from_id, to = to_id,
+    from_parent = a$parent, to_parent = b$parent,
+    same_parent = a$parent == b$parent,
+    weight = weight
+  )
+}
+
+bundles <- edges |> pmap_dfr(function(from, to, weight) bundle(from, to, weight))
+```
+
+```{r figure-7, fig.width=11, fig.height=11}
+fig7 <- ggplot() +
+  # Within-dimension ribbons take the dimension's colour, drawn first.
+  geom_path(
+    data = bundles |> filter(same_parent) |> arrange(from, to, t),
+    aes(x = x, y = y, group = interaction(from, to),
+        colour    = I(alpha(DIM_SAT[from_parent],
+                            rescale(weight, to = c(0.05, 0.45)))),
+        linewidth = I(rescale(weight, to = c(0.20, 1.60)))),
+    lineend = "round", show.legend = FALSE
+  ) +
+  # Cross-dimension ribbons are grey, so colour never implies a dimension
+  # for a link that spans two.
+  geom_path(
+    data = bundles |> filter(!same_parent) |> arrange(from, to, t),
+    aes(x = x, y = y, group = interaction(from, to),
+        colour    = I(alpha("#888888", rescale(weight, to = c(0.06, 0.42)))),
+        linewidth = I(rescale(weight, to = c(0.20, 2.20)))),
+    lineend = "round", show.legend = FALSE
+  ) +
+  geom_path(data = arc_overlays,
+            aes(x = x, y = y, group = parent, colour = I(DIM_SAT[parent])),
+            linewidth = 5.5, lineend = "butt", alpha = 0.90, show.legend = FALSE) +
+  geom_circle(
+    data = node_pos,
+    aes(x0 = x, y0 = y,
+        r      = if_else(is_parent, 0.036, 0.020),
+        fill   = I(if_else(is_parent, DIM_SAT[parent], DIM_LITE[parent])),
+        colour = I(DIM_DARK[parent])),
+    linewidth = 0.5, show.legend = FALSE
+  ) +
+  geom_text(data = filter(node_pos, is_parent),
+            aes(x = x_lab, y = y_lab, label = label, hjust = hjust, vjust = vjust,
+                colour = I(DIM_DARK[parent])),
+            size = BASE_F7 * 0.44, fontface = "bold", family = FONT,
+            show.legend = FALSE) +
+  geom_text(data = filter(node_pos, !is_parent),
+            aes(x = x_lab, y = y_lab, label = label, hjust = hjust, vjust = vjust,
+                colour = I(DIM_DARK[parent])),
+            size = BASE_F7 * 0.36, fontface = "plain", family = FONT,
+            show.legend = FALSE) +
+  coord_equal(xlim = c(-1.85, 1.85), ylim = c(-1.85, 1.85), clip = "off") +
+  theme_void(base_size = BASE_F7, base_family = FONT) +
+  theme(plot.background = element_rect(fill = "white", colour = NA),
+        plot.margin = margin(10, 10, 10, 10))
+
+save_figure(fig7, "Figure7", width = 11, height = 11)
+fig7
+```
+
+# Figure 8 — Who evaluates AD quality?
+
+Evaluator groups across the corpus. Each bubble is one human evaluator group:
+how many studies used it (horizontal), the mean sample it reported (vertical),
+and the total number of people it accounts for (area).
+
+Three conventions matter for reading the numbers. First, there are two human
+groups, not three: researchers, producers and other non-BPS human raters are
+counted in the sighted sample-size column rather than in a separate "other"
+group. Second, membership and size are recorded separately, and a study joins
+a group if *either* its evaluator labels name that group *or* its
+group-specific sample size is above zero — the two evaluator slots cannot hold
+every group a study used. The undifferentiated `[PAR] Evaluator Sample Size`
+column, which reports a study's overall total, is never redistributed; instead
+the code checks that it equals BPS plus sighted and stops if it does not.
+Third, a study is counted once per group, so a study using both blind and
+sighted evaluators appears in both without its participants being
+double-counted.
+
+Machine evaluators take part in the membership counts — by evaluator label or
+by an `Automatic` entry in the quality-assessment columns — but have no
+participants to sum, so they are not plotted.
+
+The dashed outline shows where the sighted group would sit without its three
+largest samples, which is the honest way to show that its mean is carried by a
+small number of crowdsourced studies. The layout is measured rather than
+guessed: bubble radii and label boxes are computed in millimetres and the axis
+limits are solved so that everything fits inside the panel with nothing
+clipped.
+
+Three CSVs are written alongside the figure: the group summary, the study-level
+memberships, and an audit of rows where the evaluator labels and the recorded
+counts disagree.
+
+```{r figure-8-prepare}
+BASE_F8 <- 12
+
+EMPIRICAL_ONLY <- FALSE   # TRUE restricts the figure to empirical studies
+SHOW_TRIMMED   <- TRUE    # dashed outline: sighted group without its largest samples
+TRIM_K         <- 3       # how many of the largest sighted samples to set aside
+MAX_BUBBLE     <- 80      # point size of the largest bubble; areas stay proportional
+
+EVAL_GROUPS   <- c("Blind & partially sighted", "Sighted")
+GROUP_PALETTE <- setNames(c(DIM_SAT[["SCRIPT"]], DIM_SAT[["SERVICE"]]), EVAL_GROUPS)
+
+COL <- list(
+  author = "[BIB] Author(s)", year = "[BIB] Publication Year",
+  discipline = "[BIB] Discipline", type = "[MET] Study Type",
+  qa1 = "[MET] Quality Assessment 1", qa2 = "[MET] Quality Assessment 2",
+  ev1 = "[PAR] Evaluator 1", ev2 = "[PAR] Evaluator 2",
+  n_all = "[PAR] Evaluator Sample Size",
+  n_bps = "[PAR] Evaluator Sample Size (BPS)",
+  n_sig = "[PAR] Evaluator Sample Size (Sighted)")
+
+# Evaluator labels and the group each belongs to. An unknown label stops the
+# script rather than being silently dropped.
+label_map <- c(
+  "Blind and partially sighted" = "Blind & partially sighted",
+  "Sighted (professional)"      = "Sighted",
+  "Sighted (non-professional)"  = "Sighted",
+  "Researcher"                  = "Sighted",
+  "Producer"                    = "Sighted",
+  "Autistic"                    = "Sighted",
+  "Dyslexic"                    = "Sighted",
+  "Machine"                     = "Machine",
+  "Machine (model-based)"       = "Machine",
+  "Machine (reference-based)"   = "Machine")
+
+evaluators_raw <- studies |> mutate(study_id = row_number())
+stopifnot(all(unlist(COL) %in% names(evaluators_raw)))
+
+# Counts must be non-negative whole numbers; anything else is a data error
+# rather than something to coerce quietly.
+to_count <- function(x) {
+  n <- suppressWarnings(as.numeric(x))
+  unparsed <- !is.na(x) & !(trimws(as.character(x)) %in% c("", "NA")) & is.na(n)
+  if (any(unparsed)) stop("Non-numeric value in an evaluator sample-size column.")
+  if (any(!is.na(n) & (n < 0 | n != floor(n)))) {
+    stop("Evaluator counts must be non-negative integers.")
+  }
+  n
+}
+na_text <- function(x) {
+  if_else(trimws(as.character(x)) %in% c("", "NA"),
+          NA_character_, trimws(as.character(x)))
+}
+
+evaluators_raw <- evaluators_raw |>
+  mutate(across(all_of(c(COL$n_all, COL$n_bps, COL$n_sig)), to_count),
+         across(all_of(c(COL$ev1, COL$ev2, COL$qa1, COL$qa2)), na_text))
+
+split_ok <- is.na(evaluators_raw[[COL$n_all]]) |
+  evaluators_raw[[COL$n_all]] == coalesce(evaluators_raw[[COL$n_bps]], 0) +
+  coalesce(evaluators_raw[[COL$n_sig]], 0)
+if (!all(split_ok)) {
+  stop("Total sample size differs from BPS + Sighted in rows: ",
+       paste(evaluators_raw$study_id[!split_ok], collapse = ", "))
+}
+
+labels_used <- unique(na.omit(c(evaluators_raw[[COL$ev1]], evaluators_raw[[COL$ev2]])))
+unknown <- setdiff(labels_used, names(label_map))
+if (length(unknown)) stop("Unmapped evaluator label(s): ", paste(unknown, collapse = "; "))
+
+if (EMPIRICAL_ONLY) evaluators_raw <- evaluators_raw |> filter(.data[[COL$type]] == "Empirical")
+
+# ---- Group membership -------------------------------------------------------
+flags <- evaluators_raw |>
+  transmute(
+    study_id,
+    lab_bps  = label_map[coalesce(.data[[COL$ev1]], "")] %in% EVAL_GROUPS[1] |
+      label_map[coalesce(.data[[COL$ev2]], "")] %in% EVAL_GROUPS[1],
+    lab_sig  = label_map[coalesce(.data[[COL$ev1]], "")] %in% EVAL_GROUPS[2] |
+      label_map[coalesce(.data[[COL$ev2]], "")] %in% EVAL_GROUPS[2],
+    lab_mach = label_map[coalesce(.data[[COL$ev1]], "")] %in% "Machine" |
+      label_map[coalesce(.data[[COL$ev2]], "")] %in% "Machine",
+    qa_auto  = coalesce(.data[[COL$qa1]] == "Automatic", FALSE) |
+      coalesce(.data[[COL$qa2]] == "Automatic", FALSE),
+    n_bps = .data[[COL$n_bps]], n_sig = .data[[COL$n_sig]],
+    is_bps  = lab_bps | coalesce(n_bps, 0) > 0,
+    is_sig  = lab_sig | coalesce(n_sig, 0) > 0,
+    is_mach = lab_mach | qa_auto)
+
+ev <- bind_rows(
+  flags |> filter(is_bps) |>
+    transmute(study_id, EvalGroup = EVAL_GROUPS[1],
+              sample_n = if_else(coalesce(n_bps, 0) > 0, n_bps, NA_real_)),
+  flags |> filter(is_sig) |>
+    transmute(study_id, EvalGroup = EVAL_GROUPS[2],
+              sample_n = if_else(coalesce(n_sig, 0) > 0, n_sig, NA_real_)),
+  flags |> filter(is_mach) |>
+    transmute(study_id, EvalGroup = "Machine", sample_n = NA_real_))
+
+# ---- Audit: rows where labels and counts disagree ---------------------------
+audit <- flags |>
+  mutate(issue = pmap_chr(list(
+    if_else(coalesce(n_bps, 0) > 0 & !lab_bps, "BPS count without BPS label", NA_character_),
+    if_else(coalesce(n_sig, 0) > 0 & !lab_sig, "Sighted count without sighted-side label", NA_character_),
+    if_else(lab_bps & is.na(n_bps), "BPS label without count", NA_character_),
+    if_else(lab_sig & is.na(n_sig), "Sighted-side label without count", NA_character_),
+    if_else(qa_auto & !lab_mach, "Automatic QA without machine label", NA_character_)),
+    ~ paste(na.omit(c(...)), collapse = "; "))) |>
+  filter(issue != "") |>
+  left_join(evaluators_raw |> select(study_id, all_of(c(COL$author, COL$year, COL$ev1, COL$ev2))),
+            by = "study_id")
+if (nrow(audit)) {
+  message(nrow(audit), " study row(s) where labels and counts disagree; see Figure8_audit.csv")
+}
+
+# ---- Summaries --------------------------------------------------------------
+summarise_group <- function(d) d |> summarise(
+  n_studies     = n_distinct(study_id),
+  n_with_sample = sum(!is.na(sample_n)),
+  total_n  = if (all(is.na(sample_n))) NA_real_ else sum(sample_n, na.rm = TRUE),
+  mean_n   = if (all(is.na(sample_n))) NA_real_ else mean(sample_n, na.rm = TRUE),
+  median_n = if (all(is.na(sample_n))) NA_real_ else median(sample_n, na.rm = TRUE),
+  .groups = "drop")
+
+evaluator_summary <- ev |> group_by(EvalGroup) |> summarise_group() |>
+  mutate(EvalGroup = factor(EvalGroup, levels = c(EVAL_GROUPS, "Machine"))) |>
+  arrange(EvalGroup)
+stopifnot(is.na(evaluator_summary$total_n[evaluator_summary$EvalGroup == "Machine"]))
+
+any_evaluator <- n_distinct(ev$study_id)
+both_human    <- sum(flags$is_bps & flags$is_sig)
+
+largest <- ev |> filter(EvalGroup == EVAL_GROUPS[2], !is.na(sample_n)) |>
+  slice_max(sample_n, n = TRIM_K, with_ties = FALSE)
+trimmed <- ev |> filter(EvalGroup == EVAL_GROUPS[2], !study_id %in% largest$study_id) |>
+  summarise_group() |>
+  mutate(EvalGroup = paste0(EVAL_GROUPS[2], " (without ", TRIM_K, " largest)"))
+
+knitr::kable(bind_rows(mutate(evaluator_summary, EvalGroup = as.character(EvalGroup)), trimmed),
+             digits = 1, caption = "Evaluator groups across the corpus")
+
+write_csv(bind_rows(mutate(evaluator_summary, EvalGroup = as.character(EvalGroup)), trimmed) |>
+            mutate(studies_with_any_evaluator = any_evaluator,
+                   studies_with_both_human_groups = both_human,
+                   empirical_only = EMPIRICAL_ONLY),
+          file.path(FIG_DIR, "Figure8_summary.csv"), na = "")
+write_csv(ev |>
+            left_join(evaluators_raw |> select(study_id, all_of(c(COL$author, COL$year,
+                                                                 COL$discipline, COL$type,
+                                                                 COL$ev1, COL$ev2))),
+                      by = "study_id") |>
+            arrange(EvalGroup, desc(sample_n)),
+          file.path(FIG_DIR, "Figure8_study_groups.csv"), na = "")
+write_csv(audit, file.path(FIG_DIR, "Figure8_audit.csv"), na = "")
+```
+
+```{r figure-8, fig.width=7, fig.height=5.5}
+W_F8 <- 7; H_F8 <- 5.5
+GAP_MM <- 2.5   # space between a bubble and its name
+PAD_MM <- 5     # breathing room between the outermost element and the panel edge
+LH     <- .95   # label line height
+BUBBLE_STROKE <- .5
+
+DEV_FAMILY_F8 <- if (nzchar(FONT)) FONT else "sans"
+
+# Darker tints for bubble outlines and names.
+ink <- setNames(c("#005A8C", "#8F6000"), EVAL_GROUPS)
+
+theme_bubble <- theme_minimal(base_size = BASE_F8, base_family = FONT) +
+  theme(
+    panel.grid         = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey93", linewidth = .3),
+    axis.ticks   = element_blank(),
+    axis.text    = element_text(size = 9.5, colour = "grey50"),
+    axis.title   = element_text(size = 10.5, colour = "grey35"),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10)),
+    plot.margin  = margin(16, 16, 12, 12),
+    legend.position = "none"
+  )
+
+grp <- evaluator_summary |> filter(EvalGroup %in% EVAL_GROUPS, !is.na(mean_n)) |>
+  mutate(EvalGroup = as.character(EvalGroup))
+max_total <- max(grp$total_n)
+bps <- filter(grp, EvalGroup == EVAL_GROUPS[1])
+sig <- filter(grp, EvalGroup == EVAL_GROUPS[2])
+
+els <- tibble(
+  id    = c("bps", "sig", "trim"),
+  x     = c(bps$n_studies, sig$n_studies, sig$n_studies),  # outline shares the sighted x
+  y     = c(bps$mean_n, sig$mean_n, trimmed$mean_n),
+  total = c(bps$total_n, sig$total_n, trimmed$total_n),
+  label = c("Blind &\npartially sighted", "Sighted",
+            sprintf("Sighted, %s largest\nsamples removed", TRIM_K)),
+  face  = c("bold", "bold", "plain"), tsize = c(4.3, 4.3, 3.8),
+  side  = c(-1, -1, 1),                                    # -1 = name left, 1 = right
+  ink   = c(ink[[1]], ink[[2]], ink[[2]]))
+if (!SHOW_TRIMMED || is.na(trimmed$mean_n)) els <- filter(els, id != "trim")
+
+# Sizes measured in millimetres, on the same kind of device used for the output.
+tmp_dev <- tempfile(fileext = ".pdf")
+PDF_DEVICE(tmp_dev, width = W_F8, height = H_F8, family = DEV_FAMILY_F8)
+els <- els |> mutate(
+  r_mm = .75 * (MAX_BUBBLE * sqrt(total / max_total) * .pt +
+                  BUBBLE_STROKE * .stroke / 2) / 2 / 72.27 * 25.4,
+  w_mm = pmap_dbl(list(label, face, tsize), function(l, f, s)
+    grid::convertWidth(grid::grobWidth(grid::textGrob(
+      l, gp = grid::gpar(fontfamily = FONT, fontface = f,
+                         fontsize = s * .pt, lineheight = LH))),
+      "mm", valueOnly = TRUE)),
+  h_mm = pmap_dbl(list(label, face, tsize), function(l, f, s)
+    grid::convertHeight(grid::grobHeight(grid::textGrob(
+      l, gp = grid::gpar(fontfamily = FONT, fontface = f,
+                         fontsize = s * .pt, lineheight = LH))),
+      "mm", valueOnly = TRUE)),
+  left_mm  = r_mm + if_else(side < 0, GAP_MM + w_mm, 0),
+  right_mm = r_mm + if_else(side > 0, GAP_MM + w_mm, 0),
+  vert_mm  = pmax(r_mm, h_mm / 2))
+
+make_base <- function(x_lim, y_lim) {
+  ggplot() +
+    scale_x_continuous(limits = x_lim, breaks = breaks_pretty(4),
+                       expand = expansion(0)) +
+    scale_y_continuous(limits = y_lim, breaks = breaks_pretty(4),
+                       labels = comma, expand = expansion(0)) +
+    coord_cartesian(clip = "off") +
+    labs(x = "Number of studies", y = "Mean evaluator sample size") + theme_bubble
+}
+panel_size <- function(x_lim, y_lim) {
+  g <- ggplotGrob(make_base(x_lim, y_lim) + geom_blank(aes(x = x_lim, y = y_lim)))
+  c(W_F8, H_F8) * 25.4 - c(grid::convertWidth(sum(g$widths), "mm", valueOnly = TRUE),
+                           grid::convertHeight(sum(g$heights), "mm", valueOnly = TRUE))
+}
+# Solve for the scale (mm per data unit) at which every element just fits.
+fit_axis <- function(pos, lo_mm, hi_mm, span_mm, floor_at = NULL) {
+  lims <- function(k) {
+    lo <- min(pos - (lo_mm + PAD_MM) / k)
+    if (!is.null(floor_at)) lo <- min(lo, floor_at - PAD_MM / k)
+    c(lo, max(pos + (hi_mm + PAD_MM) / k))
+  }
+  f <- function(k) k * diff(lims(k)) - span_mm
+  if (f(1e-6) >= 0) stop("Bubbles and names do not fit; lower MAX_BUBBLE or the label sizes.")
+  lims(uniroot(f, c(1e-6, 1e4), tol = 1e-9)$root)
+}
+x_lim <- range(els$x) + c(-5, 5); y_lim <- c(0, max(els$y) * 1.5)
+for (i in 1:3) {
+  pm <- panel_size(x_lim, y_lim)
+  x_lim <- fit_axis(els$x, els$left_mm, els$right_mm, pm[1])
+  y_lim <- fit_axis(els$y, els$vert_mm, els$vert_mm, pm[2], floor_at = 0)
+}
+pm <- panel_size(x_lim, y_lim)
+invisible(grDevices::dev.off()); unlink(tmp_dev)
+kx <- pm[1] / diff(x_lim); ky <- pm[2] / diff(y_lim)   # mm per data unit
+
+els <- els |> mutate(lab_x = x + side * (r_mm + GAP_MM) / kx,
+                     hjust = if_else(side < 0, 1, 0))
+fills <- els |> filter(id != "trim") |> arrange(desc(total)) |>
+  mutate(group = if_else(id == "bps", EVAL_GROUPS[1], EVAL_GROUPS[2]))
+
+fig8 <- make_base(x_lim, y_lim)
+
+if ("trim" %in% els$id) {
+  tr <- filter(els, id == "trim")
+  ring <- tibble(t = seq(0, 2 * pi, length.out = 241)) |>
+    mutate(x = tr$x + tr$r_mm / kx * cos(t), y = tr$y + tr$r_mm / ky * sin(t))
+  fig8 <- fig8 +
+    geom_path(data = ring, aes(x, y), colour = tr$ink, linewidth = .45,
+              linetype = "22") +
+    annotate("segment", x = tr$x, xend = tr$x,
+             y = sig$mean_n - 3 / ky, yend = tr$y + 3.5 / ky,
+             colour = "grey55", linewidth = .3,
+             arrow = arrow(length = unit(1.5, "mm"), angle = 25, type = "closed"))
+}
+
+fig8 <- fig8 +
+  geom_point(data = fills, aes(x, y, size = total, fill = group, colour = group),
+             shape = 21, stroke = BUBBLE_STROKE, alpha = .55) +
+  # Area, not radius, is proportional to the participant total.
+  scale_size_area(max_size = MAX_BUBBLE, limits = c(0, max_total), guide = "none") +
+  scale_fill_manual(values = GROUP_PALETTE) + scale_colour_manual(values = ink) +
+  geom_point(data = els, aes(x, y), shape = 3, size = 2.2, stroke = .5,
+             colour = els$ink) +
+  geom_text(data = els, aes(lab_x, y, label = label, hjust = hjust), vjust = .5,
+            family = FONT, fontface = els$face, size = els$tsize,
+            lineheight = LH, colour = els$ink)
+
+draw_fig8 <- function() print(fig8)
+PDF_DEVICE(file.path(FIG_DIR, "Figure8.pdf"), width = W_F8, height = H_F8,
+           family = DEV_FAMILY_F8)
+draw_fig8(); invisible(grDevices::dev.off())
+grDevices::png(file.path(FIG_DIR, "Figure8.png"), width = W_F8, height = H_F8,
+               units = "in", res = 400, type = "cairo", bg = "white")
+draw_fig8(); invisible(grDevices::dev.off())
+
+message("Studies with any evaluator: ", any_evaluator,
+        "; with both human groups: ", both_human)
+
+fig8
+```
+
+# Session information
+
+```{r session-info}
+sessionInfo()
+```

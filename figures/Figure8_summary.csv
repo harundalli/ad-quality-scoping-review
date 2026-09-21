@@ -1,0 +1,5 @@
+EvalGroup,n_studies,n_with_sample,total_n,mean_n,median_n,studies_with_any_evaluator,studies_with_both_human_groups,empirical_only
+Blind & partially sighted,31,31,817,26.35483870967742,15,51,17,FALSE
+Sighted,35,33,1866,56.54545454545455,8,51,17,FALSE
+Machine,9,0,,,,51,17,FALSE
+Sighted (without 3 largest),32,30,546,18.2,5.5,51,17,FALSE

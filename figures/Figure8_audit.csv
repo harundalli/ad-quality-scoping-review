@@ -1,0 +1,11 @@
+study_id,lab_bps,lab_sig,lab_mach,qa_auto,n_bps,n_sig,is_bps,is_sig,is_mach,issue,[BIB] Author(s),[BIB] Publication Year,[PAR] Evaluator 1,[PAR] Evaluator 2
+21,TRUE,FALSE,FALSE,FALSE,76,366,TRUE,TRUE,FALSE,Sighted count without sighted-side label,"García-Prieto, V.; Aguaded, I.",2021,Blind and partially sighted,
+29,TRUE,FALSE,FALSE,FALSE,107,12,TRUE,TRUE,FALSE,Sighted count without sighted-side label,"Jiang, L.; Zhu, D.",2021,Blind and partially sighted,
+32,TRUE,FALSE,FALSE,TRUE,16,59,TRUE,TRUE,TRUE,Sighted count without sighted-side label; Automatic QA without machine label,"Kapur, R.; Kreiss, E.",2024,Blind and partially sighted,
+34,TRUE,TRUE,FALSE,TRUE,40,354,TRUE,TRUE,TRUE,Automatic QA without machine label,"Li, C.; Padmanabhuni, S.; Cheema, M. S.; Seifi, H.; Fazli, P.",2025,Blind and partially sighted,Sighted (non-professional)
+35,TRUE,FALSE,FALSE,FALSE,15,5,TRUE,TRUE,FALSE,Sighted count without sighted-side label,"Luque Colmenero, M.O.; Soler Gallego, S.",2023,Blind and partially sighted,
+36,FALSE,TRUE,FALSE,FALSE,,,FALSE,TRUE,FALSE,Sighted-side label without count,"Marzà Ibáñez, A.",2010,Researcher,
+44,FALSE,FALSE,FALSE,FALSE,2,3,TRUE,TRUE,FALSE,BPS count without BPS label; Sighted count without sighted-side label,"Natalie, R.; Loh, J.; Tan, H. S.; Tseng, J.; Chan, I. L. Y-R.; Jarjue, E.; Kacorri, H.; Hara, K.",2021,,
+51,TRUE,FALSE,FALSE,FALSE,60,207,TRUE,TRUE,FALSE,Sighted count without sighted-side label,"Peaty, G.; Locke, K.; Kao, K-T.; Ellis, K.; Hersinta",2023,Blind and partially sighted,
+58,TRUE,FALSE,FALSE,FALSE,17,11,TRUE,TRUE,FALSE,Sighted count without sighted-side label,"Seeley, K. H.",2023,Blind and partially sighted,
+61,FALSE,TRUE,FALSE,FALSE,,,FALSE,TRUE,FALSE,Sighted-side label without count,"Snyder, J.",2007,Sighted (professional),

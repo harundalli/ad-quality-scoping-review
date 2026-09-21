@@ -1,0 +1,72 @@
+cff-version: 1.2.0
+title: >-
+  Supplementary materials for "Audio description quality: Systematic scoping
+  review"
+message: >-
+  If you use these materials, please cite the article. If you are citing the
+  materials themselves — the codebook guide, the charted dataset, or the figure
+  code — please cite this repository as well.
+type: dataset
+authors:
+  - family-names: Dallı
+    given-names: Harun
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0001-8753-6024
+    email: harun.dalli@uantwerpen.be
+  - family-names: Jankowska
+    given-names: Anna
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0001-6863-5940
+  - family-names: Schrijver
+    given-names: Iris
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0001-6091-024X
+  - family-names: González Fernández
+    given-names: César Andrés
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0002-1800-0047
+  - family-names: Reviers
+    given-names: Nina
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0003-0271-6662
+  - family-names: Vercauteren
+    given-names: Gert
+    affiliation: University of Antwerp
+    orcid: https://orcid.org/0000-0001-6711-2005
+abstract: >-
+  Audio description (AD) quality is measured far more often than it is defined, and seldom on terms set by the people it is for. Without a shared understanding, it serves as a training objective, a professional standard, a regulatory mandate and, increasingly, a computational benchmark. Evaluation has outpaced conceptualization, so that one fragment stands for the whole, concealing what is being judged and who has the power to act on it. This systematic scoping review maps how AD quality is conceptualized, assessed, and constrained across research and practice, covering every modality represented in the literature: pre-recorded screen AD, museum and architectural AD, live AD, and audio subtitling. Following PRISMA-ScR, we searched eight databases, traced citations to studies published under other labels, and surveyed practitioners (n = 70) for industry guidelines. Six reviewers screened records in English, Polish, Portuguese, and Spanish, yielding 93 documents (75 academic, 18 industry; 2007–2026). The corpus was analyzed inductively in NVivo 15 using a collaboratively developed codebook, with inter-rater agreement assessed on a subsample (κ = .79–.95). Three frameworks emerged. (1) AD Quality Dimensions maps an agential ecology comprising four interdependent sites: Service, Script, Voice, and Sound. A hierarchy of attention favors the most textual dimension of what is ultimately an aural experience: Script appears in 84.9% of sources and Sound in 34.4%. Academic and industry discourses, so often described as disconnected, fall silent in precisely the same place. (2) Methods of AD Quality Assessment reveals a corresponding imbalance. Ordinal scales often compress a multidimensional ecology into a single digit, while rubrics retain the imprint of their original purposes across changing applications and suffer from analytical separation. Automatic evaluation has expanded beyond word overlap to model-based judgment, yet the object remains only textual: much of the access experience still lies outside the score. (3) Challenges and Limitations in AD Quality traces constraints across regulation, market, workflows, user heterogeneity, and research, which jointly limit what “quality” can be. The review offers a map rather than a definition, with a question every instrument must answer: good in which respect, at which site, and under whose agency?
+keywords:
+  - audio description
+  - video description
+  - media accessibility
+  - quality assessment
+  - review
+version: 1.0.0
+date-released: 2026-09-21
+preferred-citation:
+  type: article
+  title: "Audio description quality: Systematic scoping review"
+  authors:
+    - family-names: Dallı
+      given-names: Harun
+      orcid: https://orcid.org/0000-0001-8753-6024
+    - family-names: Jankowska
+      given-names: Anna
+      orcid: https://orcid.org/0000-0001-6863-5940
+    - family-names: Schrijver
+      given-names: Iris
+      orcid: https://orcid.org/0000-0001-6091-024X
+    - family-names: González Fernández
+      given-names: César Andrés
+      orcid: https://orcid.org/0000-0002-1800-0047
+    - family-names: Reviers
+      given-names: Nina
+      orcid: https://orcid.org/0000-0003-0271-6662
+    - family-names: Vercauteren
+      given-names: Gert
+      orcid: https://orcid.org/0000-0001-6711-2005
+  journal: Cadernos de Tradução
+  year: 2026
+  volume: 46
+  issue: 1
+  # doi: 10.5007/xxxx        # add once the article DOI is issued
