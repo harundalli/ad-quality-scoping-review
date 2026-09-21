@@ -1,0 +1,26 @@
+# R session state
+.Rhistory
+.Rapp.history
+.RData
+.Rdata
+.Ruserdata
+.Renviron
+
+# RStudio
+.Rproj.user/
+*.Rproj
+
+# knitr / rmarkdown intermediates
+# The knitted APX4_Code.html is committed on purpose; these are its leftovers.
+*_cache/
+*_files/
+*.knit.md
+*.utf8.md
+*.log
+
+# Office and OS clutter
+~$*
+.~lock.*#
+.DS_Store
+Thumbs.db
+desktop.ini
