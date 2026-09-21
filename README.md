@@ -3,7 +3,7 @@
 Supplementary materials for:
 
 > Dallı, H., Jankowska, A., Schrijver, I., González Fernández, C. A., Reviers, N.,
-> & Vercauteren, G. (2026). Audio description quality: A systematic scoping
+> & Vercauteren, G. (2026). Audio description quality: Systematic scoping
 > review. *Cadernos de Tradução, 46*(1), pp. xx–xx.
 
 <!-- After archiving a release on Zenodo, paste the badge here:
